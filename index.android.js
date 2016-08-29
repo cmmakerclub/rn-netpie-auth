@@ -13,7 +13,9 @@ import {
     View
 } from 'react-native';
 
-import {NETPIE} from 'react-native-netpie-auth'
+import {NETPIE} from 'react-native-netpie-mqtt-auth-generator'
+var mqtt = require('react-native-mqtt');
+
 
 class netpie_auth extends Component {
 
@@ -21,32 +23,67 @@ class netpie_auth extends Component {
         super();
 
         this.state = {
-            msg: 'hello'
+            msg: 'Connecting to netpie..',
+            topic: ''
         }
     }
 
     componentDidMount() {
-        // NETPIE.writeBackTest();
+
         DeviceEventEmitter.addListener("messageArrived", (args)=> {
             console.log("CALLBACK FIRED", args);
         });
 
-        this.setState({msg: "Connecting to netpie.."});
+        console.log("DID MOUNT");
+        NETPIE.config({
+            appId: 'CMMC',
+            appKey: 'Cm6F9L3K2BIKxmw',
+            appSecret: 'M1gMPPmDa4n4k8ghyeHltMOFT'
+        }, (err, res) => {
+            if (err) {
+                this.setState({msg: res});
+            }
+            else {
+                console.log(res);
+                this.setState({msg: "NETPIE CONNECTED."});
+                var that = this;
+                // /* create mqtt client */
+                let opts = {
+                    uri: 'mqtt://gb.netpie.io:1883',
+                    clientId: res.mqtt_clientid,
+                    user: res.mqtt_username,
+                    pass: res.mqtt_password,
+                    auth: true,
+                    clean: true,
+                };
 
-        setTimeout(() => {
-            NETPIE.config({
-                appId: 'CMMC',
-                appKey: '60qturoh80sRMXq',
-                appSecret: 'ahKOgQWSE6h87Anc9QP5HJgdQ'
-            }, (err, res) => {
-                if (err) {
-                    this.setState({msg: res});
-                }
-                else {
-                    this.setState({msg: "NETPIE CONNECTED."});
-                }
-            });
-        }, 10);
+                mqtt.createClient(opts).then(function (client) {
+                    client.on('closed', function () {
+                        console.log('mqtt.event.closed');
+                    });
+
+                    client.on('error', function (msg) {
+                        console.log('mqtt.event.error', msg);
+                    });
+
+                    client.on('message', function (msg) {
+                        console.log('mqtt.event.message', msg);
+                        that.setState({topic: msg.topic, msg: msg.data });
+                    });
+
+                    client.on('connect', function () {
+                        console.log('connected');
+                        client.subscribe('/CMMC/gearname/#', 0);
+                    });
+
+                    client.connect();
+
+                }).catch(function (err) {
+                    console.log(err);
+                });
+
+            }
+        });
     }
 
     render() {
@@ -54,7 +91,8 @@ class netpie_auth extends Component {
         // console.log(NETPIE.testReactMethod());
         return (
             <View style={styles.container}>
-                <Text>{this.state.msg}</Text>
+                <Text>{this.state.topic}</Text>
+                <Text style={styles.big}>{this.state.msg}</Text>
             </View>
         );
     }
@@ -71,6 +109,9 @@ const styles = StyleSheet.create({
         fontSize: 20,
         textAlign: 'center',
         margin: 10,
+    },
+    big: {
+        fontSize: 40,
     },
     instructions: {
         textAlign: 'center',

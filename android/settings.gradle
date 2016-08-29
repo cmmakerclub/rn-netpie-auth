@@ -1,6 +1,8 @@
 rootProject.name = 'netpie_auth'
 
 include ':app'
-include ':react-native-netpie-auth'
+include ':react-native-netpie-mqtt-auth-generator'
+include ':react-native-mqtt'
 
-project(':react-native-netpie-auth').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-netpie-auth/android')
+project(':react-native-netpie-mqtt-auth-generator').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-netpie-mqtt-auth-generator/android')
+project(':react-native-mqtt').projectDir = new File(rootProject.projectDir,  '../node_modules/react-native-mqtt/android')
