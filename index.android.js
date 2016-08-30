@@ -16,8 +16,13 @@ import {
 import {NETPIE} from 'react-native-netpie-mqtt-auth-generator'
 var mqtt = require('react-native-mqtt');
 
+var MicroGear = require("react-native-cmmc-microgear");
 
 class netpie_auth extends Component {
+
+    APPID = "CMMC";
+    KEY = "Qiah96b7mdcmtvq";
+    SECRET = "bt81P9VyTilLkdMJrN9c10Jph";
 
     constructor() {
         super();
@@ -25,69 +30,49 @@ class netpie_auth extends Component {
         this.state = {
             msg: 'Connecting to netpie..',
             topic: ''
-        }
+        };
+
+        this.microgear = MicroGear.create({
+            key: this.KEY,
+            secret: this.SECRET
+        });
+
+        this.microgear.on('connected', () => {
+            console.log('Connected...');
+            this.microgear.subscribe("/CMMC/gearname/#");
+            setInterval(() => {
+                this.microgear.chat('mygear', 'Hello world.');
+            }, 400);
+        });
+
+        this.microgear.on('message', (topic, body) => {
+            console.log('incoming : ' + topic + ' : ' + body);
+            this.setState({msg: body});
+        });
+
+        this.microgear.on('closed', () => {
+            console.log('Closed...');
+        });
+
+        this.microgear.on("error", (reason) => {
+            console.log("reason = ", reason);
+            this.setState({msg: reason});
+        });
+
     }
 
     componentDidMount() {
+        this.microgear.connect(this.APPID);
 
         DeviceEventEmitter.addListener("messageArrived", (args)=> {
             console.log("CALLBACK FIRED", args);
         });
 
         console.log("DID MOUNT");
-        NETPIE.config({
-            appId: 'CMMC',
-            appKey: 'Cm6F9L3K2BIKxmw',
-            appSecret: 'M1gMPPmDa4n4k8ghyeHltMOFT'
-        }, (err, res) => {
-            if (err) {
-                this.setState({msg: res});
-            }
-            else {
-                console.log(res);
-                this.setState({msg: "NETPIE CONNECTED."});
-                var that = this;
-                // /* create mqtt client */
-                let opts = {
-                    uri: 'mqtt://gb.netpie.io:1883',
-                    clientId: res.mqtt_clientid,
-                    user: res.mqtt_username,
-                    pass: res.mqtt_password,
-                    auth: true,
-                    clean: true,
-                };
-
-                mqtt.createClient(opts).then(function (client) {
-                    client.on('closed', function () {
-                        console.log('mqtt.event.closed');
-                    });
-
-                    client.on('error', function (msg) {
-                        console.log('mqtt.event.error', msg);
-                    });
-
-                    client.on('message', function (msg) {
-                        console.log('mqtt.event.message', msg);
-                        that.setState({topic: msg.topic, msg: msg.data });
-                    });
-
-                    client.on('connect', function () {
-                        console.log('connected');
-                        client.subscribe('/CMMC/gearname/#', 0);
-                    });
-
-                    client.connect();
-
-                }).catch(function (err) {
-                    console.log(err);
-                });
-
-            }
-        });
     }
 
     render() {
-        // console.log("HELLO", NETPIE);
+        // console.log("HELLO", NETPIE)
         // console.log(NETPIE.testReactMethod());
         return (
             <View style={styles.container}>
